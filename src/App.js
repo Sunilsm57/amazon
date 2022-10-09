@@ -1,24 +1,60 @@
-import logo from './logo.svg';
-import './App.css';
+import './App.css'
+import { BrowserRouter,Route, Routes } from "react-router-dom";
+import Homescreen from "./screen/Homescreen";
+import Productsscreen from "./screen/Productsscreen";
+import Navbar from 'react-bootstrap/Navbar';
+import Container from 'react-bootstrap/Container';
+import {LinkContainer} from 'react-router-bootstrap';
+import  Nav from 'react-bootstrap/Nav';
+import Badge from 'react-bootstrap/Badge';
+import { Link } from 'react-router-dom';
+import { useContext } from 'react';
+import {Store} from './Store'
+import CartScreen from './screen/CartScreen';
 
 function App() {
+
+  const {state}= useContext(Store);
+  const {cart}=state;
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+    <BrowserRouter>
+    <div className='d-flex flex-column site-container'>
+      <header >
+        <Navbar bg="dark" variant="dark">
+          <Container>
+            <LinkContainer to="/">
+            <Navbar.Brand>Amazona</Navbar.Brand>
+            </LinkContainer>
+            <Nav className='me-auto'>
+            <Link to='/cart' className='nav-link'>
+              Cart
+              {
+                cart.cartItems.length >0 &&(
+                  <Badge pill bg='danger'>
+                    {cart.cartItems.reduce((a,c) => a + c.quantity, 0)}
+                  </Badge>
+                )
+              }
+            </Link>
+          </Nav>
+          </Container>
+        </Navbar>
       </header>
+      <main>
+        <Container>
+        <Routes>
+          <Route path='/products/:slug' element={<Productsscreen/>}/>
+          <Route path="/cart" element={<CartScreen/>}/>
+          <Route path="/" element={<Homescreen/>}/>
+        
+        </Routes>
+        </Container>
+      </main>
+      <footer>
+        <div className='text-center'><h4>All rights reserved</h4></div>
+      </footer>
     </div>
+</BrowserRouter>
   );
 }
 

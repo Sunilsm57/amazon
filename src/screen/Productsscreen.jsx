@@ -1,0 +1,137 @@
+import axios from "axios";
+import { useReducer, useEffect, useContext } from "react";
+import { Badge, Button, Card, Col, ListGroup, Row } from "react-bootstrap";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
+import Rating from "../components/Rating";
+import {Helmet} from 'react-helmet-async'
+import LoadingBox from "../components/LoadingBox";
+import MessageBox from "../components/MessageBox";
+import { getError } from "../utils";
+import { Store } from "../Store";
+
+const reducer = (state, action) => {
+  switch (action.type) {
+    case "FETCH_REQUEST":
+      return { ...state, loading: true };
+    case "FETCH_SUCCESS":
+      return { ...state, product: action.playload, loading: false };
+    case "FETCH_FAIL":
+      return { ...state, loading: false, error: action.playload };
+    default:
+      return state;
+  }
+};
+function Productsscreen() {
+  const navigate=useNavigate()
+  const params = useParams();
+  //   console.log(params);
+  const { slug } = params;
+
+  const [{ loading, error, product }, dispatch] = useReducer(reducer, {
+    product: [],
+    loading: true,
+    error: "",
+  });
+
+  useEffect(() => {
+    const fetchdata = async () => {
+      dispatch({ type: "FETCH_REQUEST" });
+      try {
+        const result = await axios.get(`/api/products/slug/${slug}`);
+        dispatch({ type: "FETCH_SUCCESS", playload: result.data });
+      } catch (err) {
+        dispatch({ type: "FETCH_FAIL", playload: getError(err) });
+      }
+    };
+    fetchdata();
+  }, [slug]);
+
+  const { state, dispatch: ctxDispatch } = useContext(Store);
+  const { cart } = state;
+  const addToCartHandler = async () => {
+    const existItem = cart.cartItems.find((x) => x._id === product._id);
+    const quantity = existItem ? existItem.quantity + 1 : 1;
+    const { data } = await axios.get(`/api/products/${product._id}`);
+    if (data.countInstock< quantity) {
+      window.alert('Sorry. Product is out of stock');
+      return;
+    }
+    ctxDispatch({
+      type: 'CART_ADD_ITEM',
+      payload: { ...product, quantity },
+    });
+    navigate('/cart')
+  };
+  
+
+
+  return (
+    loading?(<LoadingBox/>):
+  error?(<MessageBox variant="danger">{error}</MessageBox>)
+   : (
+    <div>
+      <Row>
+        <Col md={5}>
+            
+          <img
+            src={product.image}
+            style={{ maxWidth: "80%" }}
+            className="img-large"
+            alt={product.name}
+          />
+        </Col>
+        
+        <Col md={3}>
+          <ListGroup >
+            <ListGroup.Item>
+                <Helmet>
+              <title>{product.name}</title>
+              </Helmet>
+              <h1>{product.name}</h1>
+              </ListGroup.Item>
+            <ListGroup.Item>
+              <Rating rating={product.rating} numReviews={product.reviews} />
+            </ListGroup.Item>
+            <ListGroup.Item>
+              <strong>₹{product.price}</strong>
+            </ListGroup.Item>
+            <ListGroup.Item>Discription: {product.discription}</ListGroup.Item>
+          </ListGroup>
+        </Col>
+        <Col md={3}>
+          <Card>
+            <Card.Body>
+                <ListGroup variant='flush'>
+              <ListGroup.Item >
+                <Row>
+                  <Col>Price:</Col>
+                  <Col>{product.price}rs</Col>
+                </Row>
+              </ListGroup.Item>
+              <ListGroup.Item >
+                <Row>
+                  <Col>Status</Col>
+                  <Col>
+                    {product.countInstock > 0 ? (
+                      <Badge bg="success">In stock</Badge>
+                    ) : (
+                      <Badge bg="danger">Unavailable</Badge>
+                    )}
+                  </Col>
+                </Row>
+              </ListGroup.Item>
+              {product.countInstock>0&&(
+              <ListGroup.Item>
+                    <div className="d-grid">
+                        <Button onClick={addToCartHandler} variant='warning'>Add to cart</Button>
+                    </div>
+              </ListGroup.Item>)}
+              </ListGroup>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+    </div>
+  ));
+}
+export default Productsscreen;
